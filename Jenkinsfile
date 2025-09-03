@@ -1,10 +1,6 @@
 pipeline {
     agent any
 
-    environment {
-        COMPOSE_PROJECT_NAME = "myapp"
-    }
-
     stages {
         stage('Checkout') {
             steps {
@@ -12,13 +8,15 @@ pipeline {
             }
         }
 
-        stage('Build Images') {
+        stage('Docker Compose Build') {
             steps {
+                // Make sure version: is removed from docker-compose.yml
+                sh 'docker compose config'
                 sh 'docker compose build'
             }
         }
 
-        stage('Run Containers') {
+        stage('Docker Compose Up') {
             steps {
                 sh 'docker compose up -d'
             }
@@ -26,16 +24,20 @@ pipeline {
 
         stage('Verify Services') {
             steps {
-                sh 'docker ps'
+                sh 'docker compose ps'
             }
         }
     }
 
     post {
+        success {
+            echo '✅ Build & Deploy successful!'
+        }
+        failure {
+            echo '❌ Build failed. Check logs.'
+        }
         always {
-            echo 'Cleaning up...'
             sh 'docker compose down || true'
         }
     }
 }
-

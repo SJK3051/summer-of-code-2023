@@ -12,7 +12,7 @@ pipeline {
             steps {
                 // Make sure version: is removed from docker-compose.yml
                 sh 'docker compose config'
-                sh 'docker compose build'
+                sh 'docker compose build --no-cache'
             }
         }
 

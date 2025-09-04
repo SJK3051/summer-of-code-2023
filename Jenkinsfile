@@ -2,9 +2,7 @@ pipeline {
     agent any
 
     environment {
-        // Disable BuildKit Bake to avoid "file already closed" issues
-        DOCKER_BUILDKIT = "0"
-        COMPOSE_DOCKER_CLI_BUILD = "0"
+        DOCKER_BUILDKIT = "1"
     }
 
     stages {
@@ -14,46 +12,43 @@ pipeline {
             }
         }
 
-        stage('Docker Compose Config Check') {
+        stage('Build Services') {
             steps {
-                // Validate YAML syntax
-                sh 'docker compose config'
+                sh '''
+                echo "Building all services with Docker Compose..."
+                docker compose build --progress=plain
+                '''
             }
         }
 
-        stage('Docker Compose Build Services') {
+        stage('Run Containers') {
             steps {
-                // Build each service individually to avoid long log delays
-                sh 'docker compose build --progress=plain ml'
-                sh 'docker compose build --progress=plain backend'
-                sh 'docker compose build --progress=plain frontend'
-                sh 'docker compose build --progress=plain app'
+                sh '''
+                echo "Starting containers..."
+                docker compose up -d
+                '''
             }
         }
 
-        stage('Docker Compose Up') {
+        stage('Health Checks') {
             steps {
-                sh 'docker compose up -d'
-            }
-        }
+                sh '''
+                echo "Checking Backend..."
+                curl -f http://localhost:8000/ || exit 1
 
-        stage('Verify Services') {
-            steps {
-                sh 'docker compose ps'
+                echo "Checking ML Service..."
+                curl -f http://localhost:5000/ || exit 1
+
+                echo "Checking Frontend..."
+                curl -f http://localhost:3000/ || exit 1
+                '''
             }
         }
     }
 
     post {
-        success {
-            echo '✅ Build & Deploy successful!'
-        }
-        failure {
-            echo '❌ Build failed. Check logs.'
-            sh 'docker compose logs --tail=50' // Show last 50 lines of logs on failure
-        }
         always {
-            sh 'docker compose down || true' // Cleanup containers
+            sh 'docker compose down'
         }
     }
 }

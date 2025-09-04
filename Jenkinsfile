@@ -14,19 +14,15 @@ pipeline {
 
         stage('Build Services') {
             steps {
-                sh '''
                 echo "Building all services with Docker Compose..."
-                sh 'docker compose --progress=plain build'
-                '''
+                sh 'docker compose build'
             }
         }
 
         stage('Run Containers') {
             steps {
-                sh '''
                 echo "Starting containers..."
-                docker compose up -d
-                '''
+                sh 'docker compose up -d'
             }
         }
 

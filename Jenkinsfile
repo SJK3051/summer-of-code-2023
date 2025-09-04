@@ -16,7 +16,7 @@ pipeline {
             steps {
                 sh '''
                 echo "Building all services with Docker Compose..."
-                docker compose build --progress=plain
+                sh 'docker compose --progress=plain build'
                 '''
             }
         }

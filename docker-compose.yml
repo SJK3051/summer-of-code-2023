@@ -1,51 +1,44 @@
+version: "3.9"
+
 services:
-  app:
-    build:
-      context: ./app
-      dockerfile: Dockerfile
-    container_name: app
-    depends_on:
-      - backend
-      - ml
-    networks:
-      - appnet
-    ports:
-      - "7000:7000"
-
-  backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    container_name: backend
-    depends_on:
-      - ml
-    networks:
-      - appnet
-    ports:
-      - "8000:8000"
-
   frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
+    build: ./frontend
     container_name: frontend
-    depends_on:
-      - backend
-    networks:
-      - appnet
     ports:
       - "3000:3000"
+    depends_on:
+      - backend
+
+  backend:
+    build: ./backend
+    container_name: backend
+    command: gunicorn app.wsgi:application --bind 0.0.0.0:8000
+    volumes:
+      - ./backend:/backend
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./backend/.env
+    depends_on:
+      - db
 
   ml:
-    build:
-      context: ./machine-learning
-      dockerfile: Dockerfile
-    container_name: machine-learning
-    networks:
-      - appnet
+    build: ./machine-learning
+    container_name: ml
     ports:
       - "5000:5000"
 
-networks:
-  appnet:
-    driver: bridge
+  db:
+    image: postgres:15
+    container_name: db
+    environment:
+      POSTGRES_DB: appdb
+      POSTGRES_USER: appuser
+      POSTGRES_PASSWORD: apppass
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+volumes:
+  postgres_data:

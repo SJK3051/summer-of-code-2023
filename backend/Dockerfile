@@ -1,20 +1,31 @@
-FROM python:3.10-slim
+# Use official Python image
+FROM python:3.11-slim
+
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
 
 # Set work directory
 WORKDIR /backend
 
-# Install system dependencies for psycopg2 & Django
-RUN apt-get update && apt-get install -y gcc libpq-dev && rm -rf /var/lib/apt/lists/*
+# Install system dependencies for PostgreSQL & build tools
+RUN apt-get update && apt-get install -y \
+    libpq-dev gcc python3-dev musl-dev \
+    && rm -rf /var/lib/apt/lists/*
 
-# Install Python dependencies
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt -v
+# Install dependencies
+COPY requirements.txt /backend/
+RUN pip install --upgrade pip
+RUN pip install -r requirements.txt
 
-# Copy Django project
-COPY . .
+# Copy project files
+COPY . /backend/
 
-# Expose port
-EXPOSE 8080
+# Run database migrations + collect static
+RUN python manage.py collectstatic --noinput || true
 
-# Run Django with Gunicorn
-CMD ["gunicorn", "app.wsgi:application", "--bind", "0.0.0.0:8080"]
+# Expose backend port
+EXPOSE 8000
+
+# Start Django using Gunicorn
+CMD ["gunicorn", "app.wsgi:application", "--bind", "0.0.0.0:8000"]
